@@ -1,0 +1,196 @@
+﻿--What is the most common category for requests?                                
+SELECT 
+        requesttype,
+        COUNT(request_id)
+FROM public.la_311_2018
+GROUP BY requesttype
+ORDER BY 2 DESC
+;
+
+
+
+
+--unclosed cases
+SELECT *
+FROM public.la_311_2018
+WHERE status != 'Closed'
+;
+        
+-- case status count
+SELECT
+        status,
+        COUNT(request_id) as status_count
+FROM public.la_311_2018
+GROUP BY status
+ORDER BY 2 DESC
+;
+
+
+-- cancelled cases
+SELECT *
+FROM public.la_311_2018
+WHERE status = 'Cancelled'
+;
+
+
+-- request types
+SELECT 
+        requesttype,
+        COUNT(request_id)
+FROM public.la_311_2018
+GROUP BY requesttype
+ORDER BY 2 DESC
+;
+
+
+-- Request status by request category
+SELECT
+        requesttype,
+        status,
+        COUNT(request_id)
+FROM public.la_311_2018
+GROUP BY 1, 2
+;
+
+
+--What are the most common source for reports and are requests closed quicker via certain sources?        
+SELECT 
+        source,
+        COUNT(request_id),
+        AVG(closed_date - created_date) as average_close_time
+FROM public.la_311_2018
+GROUP BY 1
+ORDER BY 2 DESC
+;
+
+
+--Average time to close different types of requests
+
+
+SELECT
+        requesttype,
+        AVG(closed_date - created_date) as avg_time_to_close
+FROM public.la_311_2018
+WHERE status = 'Closed'
+GROUP BY requesttype
+ORDER BY avg_time_to_close DESC
+;
+
+
+-- What is the average time it takes to close a case? Max? Min?
+SELECT
+ AVG(closed_date - created_date),
+ MIN(closed_date - created_date),
+ MAX(closed_date - created_date)
+FROM public.la_311_2018
+WHERE closed_date - created_date >= '00:00:00'
+;
+
+
+-- average time to close
+SELECT time_to_close, COUNT(request_id)
+FROM
+        (
+        SELECT request_id,
+                CASE WHEN (closed_date - created_date) < '24:00:00' THEN '< 1 Day'
+                WHEN (closed_date - created_date)  < '48:00:00' THEN '1 Day'
+                WHEN (closed_date - created_date)  < '72:00:00' THEN '2 Days'
+                WHEN (closed_date - created_date)  < '96:00:00' THEN '3 Days'
+                WHEN (closed_date - created_date)  < '120:00:00' THEN '4 Days'
+                WHEN (closed_date - created_date)  < '144:00:00' THEN '5 Days'
+                WHEN (closed_date - created_date)  < '168:00:00' THEN '6 Days'
+                WHEN (closed_date - created_date)  < '192:00:00' THEN '7 Days'
+                ELSE '> 1 Week'
+                END AS time_to_close,
+                COUNT(request_id)
+        FROM public.la_311_2018
+        GROUP BY 1, 2
+                ) AS sub
+GROUP BY 1
+ORDER BY 2 DESC
+;
+
+
+-- Which agency responds to requests the most frequently?
+SELECT 
+        CASE WHEN responsibleagency = 'BOS' THEN 'Board of Supervisors'
+                 WHEN responsibleagency = 'OCB' THEN 'Office of Community Beautification'
+                 WHEN responsibleagency = 'BSL' THEN 'Bureau of Street Lighting'
+                 WHEN responsibleagency = 'ITA' THEN 'Information Technology Agency'
+                 WHEN responsibleagency = 'LADWP' THEN 'Department of Water and Power'
+                 WHEN responsibleagency = 'BSS' THEN 'Bureau of Street Services'
+                 WHEN responsibleagency = 'BOE' THEN 'Board of Education'
+                 WHEN responsibleagency = 'RAP' THEN 'Recreation and Parks'
+        ELSE 'Other'
+        END AS responsible_agency,
+        COUNT(request_id)
+FROM public.la_311_2018
+GROUP BY 1
+ORDER BY 2 DESC
+;
+
+
+-- Which agency responds to requests the quickest?
+SELECT 
+        CASE WHEN responsibleagency = 'BOS' THEN 'Board of Supervisors'
+                 WHEN responsibleagency = 'OCB' THEN 'Office of Community Beautification'
+                 WHEN responsibleagency = 'BSL' THEN 'Bureau of Street Lighting'
+                 WHEN responsibleagency = 'ITA' THEN 'Information Technology Agency'
+                 WHEN responsibleagency = 'LADWP' THEN 'Department of Water and Power'
+                 WHEN responsibleagency = 'BSS' THEN 'Bureau of Street Services'
+                 WHEN responsibleagency = 'BOE' THEN 'Board of Education'
+                 WHEN responsibleagency = 'RAP' THEN 'Recreation and Parks'
+        ELSE 'Other'
+        END AS responsible_agency,
+        AVG(closed_date - created_date)
+FROM public.la_311_2018
+GROUP BY 1
+ORDER BY 2 DESC
+;
+
+
+-- Most frequent neighborhoods where requests are from
+SELECT 
+        n.neighborhood_council_name,
+        COUNT(la.request_id)
+FROM public.la_311_2018 as la
+JOIN public.la_311_area_neighborhood_councils as n ON la.neighborhood_council_id = n.neighborhood_council_id
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 10
+;
+
+
+-- Are requests more common during certain months?
+SELECT 
+        DATE_PART('month', created_date) as request_month,
+        COUNT(request_id)
+FROM public.la_311_2018
+GROUP BY 1
+;
+
+
+-- Are requests more common during certain time of the year?
+SELECT
+        requesttype,
+        DATE_PART('month' , CAST(created_date as date)),
+        COUNT(request_id)
+FROM public.la_311_2018
+GROUP BY 1, 2
+ORDER BY 1, 2 
+;
+
+
+
+
+-- request count by zip code
+SELECT DISTINCT 
+        CASE WHEN RIGHT(address, 5) = '0' THEN 'No Address'
+        WHEN RIGHT(address, 5) ISNULL THEN 'No Address'
+        ELSE RIGHT(address, 5)
+        END AS zip_code,
+COUNT(request_id)
+FROM public.la_311_2018
+GROUP BY 1
+ORDER BY 2
+;
